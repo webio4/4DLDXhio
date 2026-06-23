@@ -1,0 +1,114 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Leaderboard validation helper
+    function isValidLeaderboard(data) {
+      return data.userId == request.auth.uid
+        && data.userId is string && data.userId.size() <= 128
+        && data.nickname is string && data.nickname.size() <= 64
+        && data.avatar is string && data.avatar.size() <= 64
+        && data.stars is int
+        && data.diamonds is int
+        && data.outfit is string && data.outfit.size() <= 64
+        && data.createdAt is int
+        && data.createdAt <= request.time.toMillis()
+        && (!('updatedAt' in data) || (data.updatedAt is int && data.updatedAt <= request.time.toMillis()));
+    }
+
+    match /leaderboard/{userId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+
+      allow create: if isVerifiedUser() 
+        && userId == request.auth.uid
+        && isValidId(userId)
+        && isValidLeaderboard(incoming())
+        && incoming().keys().hasAll(['userId', 'nickname', 'avatar', 'stars', 'diamonds', 'outfit', 'createdAt'])
+        && incoming().keys().size() == 7;
+
+      allow update: if isVerifiedUser()
+        && userId == request.auth.uid
+        && isValidId(userId)
+        && isValidLeaderboard(incoming())
+        && incoming().keys().hasAll(['userId', 'nickname', 'avatar', 'stars', 'diamonds', 'outfit', 'createdAt', 'updatedAt'])
+        && incoming().keys().size() == 8
+        && incoming().userId == existing().userId
+        && incoming().createdAt == existing().createdAt;
+
+      allow delete: if false;
+    }
+
+    // Custom sandbox rooms validation helper
+    function isValidRoom(data) {
+      return data.roomCode is string && data.roomCode.size() <= 20
+        && data.hostName is string && data.hostName.size() <= 64
+        && data.hostId is string && data.hostId.size() <= 128
+        && data.mapName is string && data.mapName.size() <= 64
+        && data.customHillHeight is number
+        && data.customDuneScale is number
+        && data.customRippleFreq is number
+        && data.customFloorLevel is number
+        && data.customObstacleDensity is int
+        && data.trackTheme is string && data.trackTheme.size() <= 32
+        && data.playersActive is list && data.playersActive.size() <= 15
+        && data.createdAt is int
+        && data.createdAt <= request.time.toMillis();
+    }
+
+    match /rooms/{roomCode} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+
+      allow create: if isVerifiedUser()
+        && isValidId(roomCode)
+        && incoming().hostId == request.auth.uid
+        && isValidRoom(incoming())
+        && incoming().keys().hasAll(['roomCode', 'hostName', 'hostId', 'mapName', 'customHillHeight', 'customDuneScale', 'customRippleFreq', 'customFloorLevel', 'customObstacleDensity', 'trackTheme', 'playersActive', 'createdAt'])
+        && incoming().keys().size() == 12;
+
+      allow update: if isVerifiedUser()
+        && isValidId(roomCode)
+        && isValidRoom(incoming())
+        && incoming().hostId == existing().hostId
+        && incoming().createdAt == existing().createdAt
+        && (
+          // Host actions (full edit map config & active players lists)
+          (existing().hostId == request.auth.uid && incoming().keys().hasAll(['roomCode', 'hostName', 'hostId', 'mapName', 'customHillHeight', 'customDuneScale', 'customRippleFreq', 'customFloorLevel', 'customObstacleDensity', 'trackTheme', 'playersActive', 'createdAt']) && incoming().keys().size() == 12)
+          ||
+          // Non-host player actions: Heartbeat/Joining only updating active player list
+          (existing().hostId != request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['playersActive']))
+        );
+
+      allow delete: if isVerifiedUser()
+        && isValidId(roomCode)
+        && existing().hostId == request.auth.uid;
+    }
+  }
+}

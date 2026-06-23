@@ -1,0 +1,53 @@
+{
+  "entities": {
+    "leaderboardUser": {
+      "title": "LeaderboardUser",
+      "description": "Leaderboard highscore and customization of a user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The unique user ID" },
+        "nickname": { "type": "string", "description": "The custom nickname of the player" },
+        "avatar": { "type": "string", "description": "Avatar representation (emoji or character code)" },
+        "stars": { "type": "integer", "description": "Amount of score/stars" },
+        "diamonds": { "type": "integer", "description": "Amount of checkpoints/gems cleared" },
+        "outfit": { "type": "string", "description": "Fitted custom character styling" },
+        "createdAt": { "type": "integer", "description": "The custom creation time" },
+        "updatedAt": { "type": "integer", "description": "The dynamic updated time" }
+      },
+      "required": ["userId", "nickname", "avatar", "stars", "diamonds", "outfit", "createdAt"]
+    },
+    "customMapRoom": {
+      "title": "CustomMapRoom",
+      "description": "Multiplayer dynamic racing custom map room specs",
+      "type": "object",
+      "properties": {
+        "roomCode": { "type": "string", "description": "The 6-character room access code" },
+        "hostName": { "type": "string", "description": "Host player's nickname" },
+        "hostId": { "type": "string", "description": "Host player's unique user ID" },
+        "mapName": { "type": "string", "description": "Name given to the customized map" },
+        "customHillHeight": { "type": "number", "description": "The terrain's custom hill scale heights" },
+        "customDuneScale": { "type": "number", "description": "The sandbox terrain dune scale" },
+        "customRippleFreq": { "type": "number", "description": "The ripple frequency parameter" },
+        "customFloorLevel": { "type": "number", "description": "The sea floor/river level floor height" },
+        "customObstacleDensity": { "type": "integer", "description": "Obstacle placements density" },
+        "trackTheme": { "type": "string", "enum": ["digital", "magma", "neon", "matrix", "classic"] },
+        "playersActive": {
+          "type": "array",
+          "description": "List of active players inside the session mapping"
+        },
+        "createdAt": { "type": "integer", "description": "The creation time of the sandbox layout room" }
+      },
+      "required": ["roomCode", "hostName", "hostId", "mapName", "customHillHeight", "customDuneScale", "customRippleFreq", "customFloorLevel", "customObstacleDensity", "trackTheme", "playersActive", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/leaderboard/{userId}": {
+      "schema": { "$ref": "#/entities/leaderboardUser" },
+      "description": "Scores and outfit configuration for individual users"
+    },
+    "/rooms/{roomCode}": {
+      "schema": { "$ref": "#/entities/customMapRoom" },
+      "description": "Custom sandbox room details for tracking multiple players"
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "3D Car Driving Simulat",
+  "description": "An immersive 3D terrain car driving simulator with realistic physics, steering wheel animations, customizable cars, track configurations, and day-night cycle.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
